@@ -23,11 +23,23 @@ export interface UrbanResult {
     isDangling: boolean; // Indicates if it's an unmapped ending word
 }
 
+import { policeCodes } from './codes';
+
 /**
  * Extracts the acronym from an array of words (first letter of each).
+ * If a word is a continuous string of numbers, it extracts the numbers, zero-pads single digits,
+ * and passes them through as exact numeric definitions so they can be looked up.
  */
-export function buildAcronym(words: string[]): string {
-    return words.map(w => w.charAt(0)).join('');
+export function buildAcronymObj(words: string[]): { char: string, isNumeric: boolean, originalWord: string }[] {
+    return words.map(w => {
+        // If it's a number string
+        if (/^\d+$/.test(w)) {
+            // Zero pad single digits
+            if (w.length === 1) w = `0${w}`;
+            return { char: w, isNumeric: true, originalWord: w };
+        }
+        return { char: w.charAt(0), isNumeric: false, originalWord: w };
+    });
 }
 
 /**
@@ -60,18 +72,79 @@ async function fetchUrbanDefinition(term: string): Promise<UrbanDefinition | nul
     }
 }
 
-/**
- * The greedy recursive lookup.
- * Tries the full acronym, then strips the last character recursively until a match is found or length is 0.
- *
- * @param acronym The fully constructed acronym string
- * @param originalWords The array of words this acronym was built from
- * @returns Array of identified chunks and any dangling leftover words
- */
-export async function evaluateAcronymSegment(acronym: string, originalWords: string[]): Promise<UrbanResult[]> {
-    if (!acronym || acronym.length === 0) return [];
+export async function evaluateAcronymSegment(acronymObjs: { char: string, isNumeric: boolean, originalWord: string }[]): Promise<UrbanResult[]> {
+    if (!acronymObjs || acronymObjs.length === 0) return [];
 
-    // --- RULE 1: Is it a common word? ---
+    // Convert objects to a continuous array of final tokens to evaluate
+    // For numbers, we will expand them directly to their 10 code meaning
+    const results: UrbanResult[] = [];
+
+    // We will chunk non-numeric characters together to form acronyms to query
+    let currentAcronymChunk = '';
+    let currentWordsChunk: string[] = [];
+
+    for (let i = 0; i < acronymObjs.length; i++) {
+        const obj = acronymObjs[i];
+
+        if (obj.isNumeric) {
+            // First, if we had a pending text acronym chunk, evaluate it and push results
+            if (currentAcronymChunk.length > 0) {
+                const textResults = await evaluateTextAcronym(currentAcronymChunk, currentWordsChunk);
+                results.push(...textResults);
+                currentAcronymChunk = '';
+                currentWordsChunk = [];
+            }
+
+            // Now resolve the number greedily using our engine logic
+            // E.g. "20" -> "10-20" Your Location
+            const numbers = obj.char;
+            let j = 0;
+            while (j < numbers.length) {
+                // we want exactly 2 digits, or 1 if it's the very last dangling char
+                const pair = numbers.substring(j, j + 2);
+
+                let codeStr = pair;
+                let meaning = policeCodes[pair];
+
+                if (!meaning && pair.startsWith('0') && pair.length > 1) {
+                    const stripped = pair.replace(/^0+/, '');
+                    if (policeCodes[stripped]) {
+                        codeStr = stripped;
+                        meaning = policeCodes[stripped];
+                    }
+                }
+
+                // Add the numeric resolution directly as an UrbanResult for seamless UI integeration
+                results.push({
+                    word: `10-${codeStr}`,
+                    definition: meaning || 'Unknown Code',
+                    isAcronym: false,
+                    isCommonWord: false,
+                    isDangling: false // Technically mapped, even if unknown
+                });
+
+                j += 2;
+            }
+        } else {
+            // Build up the normal text chunk
+            currentAcronymChunk += obj.char;
+            currentWordsChunk.push(obj.originalWord);
+        }
+    }
+
+    // Evaluate any remaining text chunk at the end
+    if (currentAcronymChunk.length > 0) {
+        const textResults = await evaluateTextAcronym(currentAcronymChunk, currentWordsChunk);
+        results.push(...textResults);
+    }
+
+    return results;
+}
+
+/**
+ * Extracted text-only greedy logic.
+ */
+async function evaluateTextAcronym(acronym: string, originalWords: string[]): Promise<UrbanResult[]> {
     if (isCommonWord(acronym)) {
         return [{
             word: acronym,
@@ -82,14 +155,11 @@ export async function evaluateAcronymSegment(acronym: string, originalWords: str
         }];
     }
 
-    // --- RULE 2: Greedy API Lookup ---
     let currentTry = acronym;
     while (currentTry.length > 0) {
-
         const def = await fetchUrbanDefinition(currentTry);
 
         if (def) {
-            // We found a match for `currentTry`!
             const matchLen = currentTry.length;
             const danglingWords = originalWords.slice(matchLen);
 
@@ -101,11 +171,8 @@ export async function evaluateAcronymSegment(acronym: string, originalWords: str
                 isDangling: false
             }];
 
-            // --- RULE 3: Dangling Words ---
             if (danglingWords.length > 0) {
                 danglingWords.forEach(dw => {
-                    // Filter out punctuation-only words from dangling if needed,
-                    // but requirements state preserve them
                     if (dw.trim().length > 0) {
                         result.push({
                             word: dw,
@@ -120,13 +187,9 @@ export async function evaluateAcronymSegment(acronym: string, originalWords: str
 
             return result;
         }
-
-        // No match found, strip the last character & retry
         currentTry = currentTry.slice(0, -1);
     }
 
-    // If we get here, absolutely NO combination of the acronym was found in the API.
-    // Extremely rare for UD, but possible. Treat everything as dangling.
     return originalWords.map(w => ({
         word: w,
         definition: "Unresolvable Dangling Word",
@@ -148,24 +211,15 @@ export async function processTextBlock(textBlock: string): Promise<UrbanResult[]
     // Replace actual newlines with spaces so we don't treat newlines as characters
     const safeText = textBlock.replace(/\n/g, ' ');
 
-    // Extract words
-    // Pass 1: Try with punctuation preserved (though string split natively strips standard space)
     const rawWords = safeText.split(/\s+/).filter(w => w.length > 0);
 
-    // For now, we will perform the lookup on the raw words (punct intact on the front char)
-    // If we wanted strictly two passes, we would evaluate Pass 1, and if nothing found, strip punct and evaluate Pass 2.
-    // Given the greedy algo drops chars from the END, starting with `ILYT` vs `ILYT.` 
-    // We will build the acronym from exactly what the first char is.
-
-    // NORMALIZE: the requirement states Pass 1 (punct preserved), Pass 2 (punct stripped).
-    // To simplify: we will use Pass 2 immediately to build the acronym reliably.
     const cleanWords = rawWords.map(w => w.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')).filter(w => w.length > 0);
 
     if (cleanWords.length === 0) return [];
 
-    const acronym = buildAcronym(cleanWords);
+    const acronymObjs = buildAcronymObj(cleanWords);
 
-    return await evaluateAcronymSegment(acronym, cleanWords);
+    return await evaluateAcronymSegment(acronymObjs);
 }
 
 /**

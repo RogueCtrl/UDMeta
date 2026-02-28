@@ -60,5 +60,6 @@ export function calculateRelativeDate(baseDate: Date, subtractAmount: number, su
  */
 export function formatToLocalDatetimeString(date: Date): string {
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    // MMDDYYYYHHmm
+    return `${pad(date.getMonth() + 1)}${pad(date.getDate())}${date.getFullYear()}${pad(date.getHours())}${pad(date.getMinutes())}`;
 }

@@ -61,10 +61,10 @@ function handleTimeChange() {
     evaluatedDisplay.innerHTML = `Evaluated Time: <strong>${baseDate.toLocaleString()}</strong>`;
   }
 
-  // Convert Date to exact string matching the format requirement (e.g., 2026-02-28 10:45 -> 20, 26, 02, 28, 10, 45)
-  // We format as YYYYMMDDHHmm
+  // Convert Date to exact string matching the format requirement (e.g., 2026-02-28 10:45 -> 02, 28, 20, 26, 10, 45)
+  // We format as MMDDYYYYHHmm
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const rawString = `${baseDate.getFullYear()}${pad(baseDate.getMonth() + 1)}${pad(baseDate.getDate())}${pad(baseDate.getHours())}${pad(baseDate.getMinutes())}`;
+  const rawString = `${pad(baseDate.getMonth() + 1)}${pad(baseDate.getDate())}${baseDate.getFullYear()}${pad(baseDate.getHours())}${pad(baseDate.getMinutes())}`;
 
   const tenCodes = decodeDateToTenCodes(rawString);
 
@@ -133,6 +133,8 @@ async function handleTextChange() {
     const mapped = results.map(r => {
       if (r.isCommonWord) return `[${r.word}] is a verified dictionary word.`;
       if (r.isAcronym) return `[${r.word}] => ${r.definition}`;
+      // Numeric resolutions are neither common words, acronyms, nor dangling
+      if (!r.isAcronym && !r.isCommonWord && !r.isDangling) return `[${r.word}] => ${r.definition}`;
       return `[${r.word}] remained unmapped.`;
     }).join('<br><br>');
 
