@@ -1,5 +1,7 @@
 # Urban Dictionary & Police Ten-Code Decoder
 
+![App Preview](public/preview.png)
+
 A dual-function interactive decoder web application built entirely in Vanilla TypeScript and deployed via GitHub Pages.
 
 ## Core Features
