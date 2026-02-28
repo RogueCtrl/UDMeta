@@ -4,6 +4,8 @@
 
 A dual-function interactive decoder web application built entirely in Vanilla TypeScript and deployed via GitHub Pages.
 
+Time to build: 1h
+
 ## Core Features
 1. **Police 10-Code Decoder**: 
    - Converts an input date and time into 2-digit pairs and maps them to standard Police 10-Codes (e.g., `10:04` -> `10`, `4` -> `10-10`, `10-4`). 
