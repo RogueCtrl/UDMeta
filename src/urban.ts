@@ -1,4 +1,5 @@
 import commonWordsList from './commonWords.json';
+import { getCachedDefinition, setCachedDefinition } from './idb';
 
 // Create a fast lookup Set for the words
 const commonWords = new Set(commonWordsList.map((w: string) => w.toLowerCase()));
@@ -56,16 +57,26 @@ export function isCommonWord(str: string): boolean {
  */
 async function fetchUrbanDefinition(term: string): Promise<UrbanDefinition | null> {
     try {
+        // IDB Read-Through Cache Check
+        const cached = await getCachedDefinition(term);
+        if (cached !== null) {
+            return cached.data;
+        }
+
         const response = await fetch(`https://api.urbandictionary.com/v0/define?term=${encodeURIComponent(term)}`);
         const data = await response.json();
 
         if (!data.list || data.list.length === 0) {
+            await setCachedDefinition(term, null); // Cache the empty miss
             return null;
         }
 
         // Sort by highest upvotes
         const sorted = data.list.sort((a: UrbanDefinition, b: UrbanDefinition) => b.thumbs_up - a.thumbs_up);
-        return sorted[0];
+        const bestDef = sorted[0];
+
+        await setCachedDefinition(term, bestDef);
+        return bestDef;
     } catch (e) {
         console.error("Error fetching from Urban Dictionary:", e);
         return null;
