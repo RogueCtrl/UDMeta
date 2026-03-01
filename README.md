@@ -12,8 +12,11 @@ Time to build: 1h
    - Features an optional toggle to calculate relative datetimes dynamically (subtracting days/weeks/months before processing).
 2. **Text to Urban Dictionary Acronyms**: 
    - Takes a block of text and extracts the first letter of each word to form an acronym.
-   - Performs a greedy search against the unofficial Urban Dictionary API.
-   - Preserves common English words (>= 3 chars) and "dangling" unresolvable words, combining the result into a clean hyphenated output (e.g. `I Love You July` -> `ILY-July`).
+   - **Recursive Greedy Search**: Capped at 5 characters, the algorithm continuously queries the unofficial Urban Dictionary API backwards until a match is found, then recursively processes the dangling strings left in the chunk for secondary acronyms.
+   - **Performance Caching**: Successfully resolved acronym queries (and unresolvable misses) are aggressively cached inside the browser's `IndexedDB`, achieving 0ms lookup times on repeated terms.
+   - **Punctuation Boundaries**: Periods, commas, exclamation points, colons, em-dashes, and hyphens act as hard stops for chunking logic.
+   - **Dictionary Fallback**: Evaluates sequences against a local 3,000-word Common English dictionary to organically map known words (e.g. `wait`) over forcing bizarre Urban Dictionary matches. 
+   - Formats cleanly as a hyphenated output. *(e.g. `Hard to believe we're almost into the final month of Q1` -> `Htb-wait-fmo-Q1`)*.
 
 ## Tech Stack
 - Frontend: Vanilla TypeScript (No frameworks like React or Vue).
