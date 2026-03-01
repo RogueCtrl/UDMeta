@@ -16,7 +16,6 @@ Time to build: 1h
    - **Performance Caching**: Successfully resolved acronym queries (and unresolvable misses) are aggressively cached inside the browser's `IndexedDB`, achieving 0ms lookup times on repeated terms.
    - **Punctuation Boundaries**: Periods, commas, exclamation points, colons, em-dashes, and hyphens act as hard stops for chunking logic.
    - **Dictionary Fallback**: Evaluates sequences against a local 3,000-word Common English dictionary to organically map known words (e.g. `wait`) over forcing bizarre Urban Dictionary matches. 
-   - Formats cleanly as a hyphenated output. *(e.g. `Hard to believe we're almost into the final month of Q1` -> `Htb-wait-fmo-Q1`)*.
 
 ## Tech Stack
 - Frontend: Vanilla TypeScript (No frameworks like React or Vue).
