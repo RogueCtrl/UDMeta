@@ -227,17 +227,25 @@ async function evaluateTextAcronym(acronym: string, originalWords: string[]): Pr
 
 /**
  * Main processor:
- * 1. Takes the raw string block.
- * 2. Parses it using Pass 1 (keeping punctuation) or Pass 2 (stripping punctuation).
- * 3. Builds the acronym and processes the segments.
+ * @param preservePunctuation If true, keeps punctuation as chunk boundaries. If false, strips everything non-alphanumeric.
  */
-export async function processTextBlock(textBlock: string): Promise<UrbanResult[]> {
+export async function processTextBlock(textBlock: string, preservePunctuation: boolean = true): Promise<UrbanResult[]> {
     if (!textBlock.trim()) return [];
 
-    // Split text into chunks based on punctuation and line break boundaries
-    // periods, commas, semi-colons, colons, exclamation points, question marks,
-    // newlines, hyphens surrounded by whitespace, em dashes
-    const chunks = textBlock.split(/[,.;:!?\n]+|\s+-\s+|—+/g).filter(c => c.trim().length > 0);
+    let chunks: string[] = [];
+
+    if (preservePunctuation) {
+        // Split text into chunks based on punctuation and line break boundaries
+        // periods, commas, semi-colons, colons, exclamation points, question marks,
+        // newlines, hyphens surrounded by whitespace, em dashes
+        chunks = textBlock.split(/[,.;:!?\n]+|\s+-\s+|—+/g).filter(c => c.trim().length > 0);
+    } else {
+        // Aggressively replace all non-alphanumeric characters (including newlines and punctuation)
+        // with spaces to force a single massive unpunctuated block, then split by space
+        const strippedText = textBlock.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\n/g, ' ');
+        // We push this as a single monolithic chunk so words run together seamlessly
+        chunks = [strippedText.trim()].filter(c => c.length > 0);
+    }
 
     const finalResults: UrbanResult[] = [];
 

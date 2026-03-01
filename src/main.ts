@@ -12,6 +12,7 @@ const evaluatedDisplay = document.getElementById('evaluated-time-display') as HT
 const tenCodeOutput = document.getElementById('ten-code-output') as HTMLDivElement;
 
 const textInput = document.getElementById('text-input') as HTMLTextAreaElement;
+const punctuationToggle = document.getElementById('punctuation-toggle') as HTMLInputElement;
 const urbanOutput = document.getElementById('urban-output') as HTMLDivElement;
 
 // Initialization
@@ -40,6 +41,8 @@ function init() {
       handleTextChange();
     }, 500); // 500ms debounce
   });
+
+  punctuationToggle.addEventListener('change', handleTextChange);
 }
 
 function handleTimeChange() {
@@ -107,7 +110,8 @@ async function handleTextChange() {
     `;
 
   try {
-    const results: UrbanResult[] = await processTextBlock(rawText);
+    const preservePunctuation = punctuationToggle.checked;
+    const results: UrbanResult[] = await processTextBlock(rawText, preservePunctuation);
 
     if (results.length === 0) {
       urbanOutput.innerHTML = '<p class="placeholder-text">No acronyms could be determined.</p>';

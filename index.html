@@ -1,85 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Decoder App</title>
-    <link rel="stylesheet" href="/src/style.css" />
-  </head>
-  <body>
-    <div id="app" class="app-container">
-      <header class="hero">
-        <h1>Context Decoder</h1>
-        <p class="subtitle">Translate Time into 10-Codes & Text into Acronyms</p>
-      </header>
 
-      <main class="main-content">
-        <!-- 10-CODE DECODER WIDGET -->
-        <section class="glass-panel widget-section" id="ten-code-widget">
-          <h2>
-            <i data-lucide="clock"></i> 
-            Time & 10-Code Decoder
-          </h2>
-          
-          <div class="input-group">
-            <label for="datetime-picker">Absolute Datetime</label>
-            <input type="datetime-local" id="datetime-picker" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decoder App</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <div id="app" class="app-container">
+    <header class="hero">
+      <h1>Context Decoder</h1>
+      <p class="subtitle">Translate Time into 10-Codes & Text into Acronyms</p>
+    </header>
+
+    <main class="main-content">
+      <!-- 10-CODE DECODER WIDGET -->
+      <section class="glass-panel widget-section" id="ten-code-widget">
+        <h2>
+          <i data-lucide="clock"></i>
+          Time & 10-Code Decoder
+        </h2>
+
+        <div class="input-group">
+          <label for="datetime-picker">Absolute Datetime</label>
+          <input type="datetime-local" id="datetime-picker" />
+        </div>
+
+        <div class="toggle-group">
+          <label class="switch">
+            <input type="checkbox" id="relative-toggle" />
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">Enable Relative Subtraction</span>
+        </div>
+
+        <div class="input-group relative-time-group" id="relative-time-panel" style="display: none;">
+          <div class="flex-row">
+            <input type="number" id="relative-number" min="1" value="1" placeholder="Amount" />
+            <select id="relative-unit">
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+              <option value="months">Months</option>
+            </select>
           </div>
+          <p class="evaluated-time" id="evaluated-time-display">Evaluated Time: --</p>
+        </div>
 
-          <div class="toggle-group">
-            <label class="switch">
-              <input type="checkbox" id="relative-toggle" />
-              <span class="slider round"></span>
-            </label>
-            <span class="toggle-label">Enable Relative Subtraction</span>
-          </div>
+        <div class="result-area ten-code-results" id="ten-code-output">
+          <!-- 10 code chunks injected here -->
+          <p class="placeholder-text">Select a time to decode...</p>
+        </div>
+      </section>
 
-          <div class="input-group relative-time-group" id="relative-time-panel" style="display: none;">
-            <div class="flex-row">
-               <input type="number" id="relative-number" min="1" value="1" placeholder="Amount" />
-               <select id="relative-unit">
-                 <option value="days">Days</option>
-                 <option value="weeks">Weeks</option>
-                 <option value="months">Months</option>
-               </select>
-            </div>
-            <p class="evaluated-time" id="evaluated-time-display">Evaluated Time: --</p>
-          </div>
+      <!-- URBAN DICTIONARY WIDGET -->
+      <section class="glass-panel widget-section" id="urban-dictionary-widget">
+        <h2>
+          <i data-lucide="book-open"></i>
+          Text to Acronym Parser
+        </h2>
 
-          <div class="result-area ten-code-results" id="ten-code-output">
-            <!-- 10 code chunks injected here -->
-            <p class="placeholder-text">Select a time to decode...</p>
-          </div>
-        </section>
+        <div class="input-group">
+          <label for="text-input">Raw Text Block</label>
+          <textarea id="text-input"
+            placeholder="Paste your text here... it will be evaluated into acronyms."></textarea>
+        </div>
 
-        <!-- URBAN DICTIONARY WIDGET -->
-        <section class="glass-panel widget-section" id="urban-dictionary-widget">
-          <h2>
-             <i data-lucide="book-open"></i> 
-             Text to Acronym Parser
-          </h2>
+        <div class="toggle-group" style="margin-top: 1rem; margin-bottom: 1rem;">
+          <label class="switch">
+            <input type="checkbox" id="punctuation-toggle" checked />
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">Preserve Punctuation Boundaries</span>
+        </div>
 
-          <div class="input-group">
-            <label for="text-input">Raw Text Block</label>
-            <textarea id="text-input" placeholder="Paste your text here... it will be evaluated into acronyms."></textarea>
-          </div>
+        <div class="result-area urban-results" id="urban-output">
+          <!-- Loading states, empty states, or resulting combinations injected here -->
+          <p class="placeholder-text">Enter text to parse acronyms...</p>
+        </div>
+      </section>
 
-          <div class="result-area urban-results" id="urban-output">
-            <!-- Loading states, empty states, or resulting combinations injected here -->
-             <p class="placeholder-text">Enter text to parse acronyms...</p>
-          </div>
-        </section>
+    </main>
 
-      </main>
-      
-      <footer>
-        <p>Built for the Urban Dictionary & Police Decoder Project</p>
-      </footer>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-      lucide.createIcons();
-    </script>
-  </body>
+    <footer>
+      <p>Built for the Urban Dictionary & Police Decoder Project</p>
+    </footer>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+
 </html>
