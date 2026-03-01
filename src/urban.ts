@@ -145,21 +145,34 @@ export async function evaluateAcronymSegment(acronymObjs: { char: string, isNume
  * Extracted text-only greedy logic.
  */
 async function evaluateTextAcronym(acronym: string, originalWords: string[]): Promise<UrbanResult[]> {
-    if (isCommonWord(acronym)) {
-        return [{
-            word: acronym,
-            definition: "Common English word, preserved.",
-            isAcronym: false,
-            isCommonWord: true,
-            isDangling: false
-        }];
-    }
+    if (acronym.length === 0) return [];
 
     // Cap acronym querying to a maximum of 5 characters.
-    // If the chunk has 8 words, the acronym is initially 8 chars. We start trying at 5.
     let currentTry = acronym.length > 5 ? acronym.slice(0, 5) : acronym;
 
     while (currentTry.length > 1) {
+        // Rule 1: Is the current acronym string a common english word itself?
+        if (isCommonWord(currentTry)) {
+            const matchLen = currentTry.length;
+            const matchWords = originalWords.slice(0, matchLen);
+            const danglingWords = originalWords.slice(matchLen);
+
+            const result: UrbanResult[] = [{
+                word: currentTry,
+                definition: `Common english word formed by: [${matchWords.join(' ')}]`,
+                isAcronym: true,
+                isCommonWord: true,
+                isDangling: false
+            }];
+
+            if (danglingWords.length > 0) {
+                const rest = await evaluateTextAcronym(acronym.slice(matchLen), danglingWords);
+                result.push(...rest);
+            }
+            return result;
+        }
+
+        // Rule 2: API lookup
         const def = await fetchUrbanDefinition(currentTry);
 
         if (def) {
@@ -175,17 +188,8 @@ async function evaluateTextAcronym(acronym: string, originalWords: string[]): Pr
             }];
 
             if (danglingWords.length > 0) {
-                danglingWords.forEach(dw => {
-                    if (dw.trim().length > 0) {
-                        result.push({
-                            word: dw,
-                            definition: "Dangling Word",
-                            isAcronym: false,
-                            isCommonWord: false,
-                            isDangling: true
-                        });
-                    }
-                });
+                const rest = await evaluateTextAcronym(acronym.slice(matchLen), danglingWords);
+                result.push(...rest);
             }
 
             return result;
@@ -193,13 +197,21 @@ async function evaluateTextAcronym(acronym: string, originalWords: string[]): Pr
         currentTry = currentTry.slice(0, -1);
     }
 
-    return originalWords.map(w => ({
-        word: w,
-        definition: "Unresolvable Dangling Word",
+    // If no acronym matched, the first word remains unmapped. Recurse on the remaining words.
+    const result: UrbanResult[] = [{
+        word: originalWords[0],
+        definition: "remained unmapped.",
         isAcronym: false,
         isCommonWord: false,
         isDangling: true
-    }));
+    }];
+
+    if (originalWords.length > 1) {
+        const rest = await evaluateTextAcronym(acronym.slice(1), originalWords.slice(1));
+        result.push(...rest);
+    }
+
+    return result;
 }
 
 /**
