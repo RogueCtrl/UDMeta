@@ -234,13 +234,10 @@ async function evaluateTextAcronym(acronym: string, originalWords: string[]): Pr
 export async function processTextBlock(textBlock: string): Promise<UrbanResult[]> {
     if (!textBlock.trim()) return [];
 
-    // Replace actual newlines with spaces so we don't treat newlines as characters
-    const safeText = textBlock.replace(/\n/g, ' ');
-
-    // Split text into chunks based on punctuation boundaries
+    // Split text into chunks based on punctuation and line break boundaries
     // periods, commas, semi-colons, colons, exclamation points, question marks,
-    // hyphens surrounded by whitespace, em dashes
-    const chunks = safeText.split(/[,.;:!?]+|\s+-\s+|—+/g).filter(c => c.trim().length > 0);
+    // newlines, hyphens surrounded by whitespace, em dashes
+    const chunks = textBlock.split(/[,.;:!?\n]+|\s+-\s+|—+/g).filter(c => c.trim().length > 0);
 
     const finalResults: UrbanResult[] = [];
 
