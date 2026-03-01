@@ -155,8 +155,11 @@ async function evaluateTextAcronym(acronym: string, originalWords: string[]): Pr
         }];
     }
 
-    let currentTry = acronym;
-    while (currentTry.length > 0) {
+    // Cap acronym querying to a maximum of 5 characters.
+    // If the chunk has 8 words, the acronym is initially 8 chars. We start trying at 5.
+    let currentTry = acronym.length > 5 ? acronym.slice(0, 5) : acronym;
+
+    while (currentTry.length > 1) {
         const def = await fetchUrbanDefinition(currentTry);
 
         if (def) {
@@ -211,15 +214,28 @@ export async function processTextBlock(textBlock: string): Promise<UrbanResult[]
     // Replace actual newlines with spaces so we don't treat newlines as characters
     const safeText = textBlock.replace(/\n/g, ' ');
 
-    const rawWords = safeText.split(/\s+/).filter(w => w.length > 0);
+    // Split text into chunks based on punctuation boundaries
+    // periods, commas, semi-colons, colons, exclamation points, question marks,
+    // hyphens surrounded by whitespace, em dashes
+    const chunks = safeText.split(/[,.;:!?]+|\s+-\s+|—+/g).filter(c => c.trim().length > 0);
 
-    const cleanWords = rawWords.map(w => w.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')).filter(w => w.length > 0);
+    const finalResults: UrbanResult[] = [];
 
-    if (cleanWords.length === 0) return [];
+    for (const chunk of chunks) {
+        const rawWords = chunk.split(/\s+/).filter(w => w.length > 0);
 
-    const acronymObjs = buildAcronymObj(cleanWords);
+        // Strip out any remaining non-alphanumeric trailing/leading characters within the chunk
+        // except for hyphens that might be part of hyphenated words without spaces
+        const cleanWords = rawWords.map(w => w.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')).filter(w => w.length > 0);
 
-    return await evaluateAcronymSegment(acronymObjs);
+        if (cleanWords.length > 0) {
+            const acronymObjs = buildAcronymObj(cleanWords);
+            const chunkResults = await evaluateAcronymSegment(acronymObjs);
+            finalResults.push(...chunkResults);
+        }
+    }
+
+    return finalResults;
 }
 
 /**
